@@ -1,0 +1,29 @@
+Comments of TA on Reactor Project
+
+Reactor 1: BlockingEventQueue (46/100)
+- implemented the queue base API
+- basic premise of using semaphores to control enqueue and dequeue is correct
+- the need for a critical section to protect queue internal state is identified in the comments, but mutual exclusion is NOT enforced
+- example: if capacitySem has 5 tickets and two concurrent threads enter enqueue(), the semaphore ticket count is reduced to 3 and both threads gain access to modify the internal queue concurrently, which will cause undefined behaviour or corrupt the internal state
+- getSize missing happens-before with modifications to the internal queue, return value is undefined
+- optional getAll is not correct
+- in getAll, semaphores are called once each, but multiple items are removed
+- in getAll, access to internal queue is not protected with a critical section
+- in getAll, calling notify() without holding a monitor lock will always throw an exception
+- unnecessary interrupt check in semaphore acquire is harmless
+- using semaphores enables efficient notify()
+
+Reactor 2: Dispatcher (98/100)
+- WorkerThread can throw InterruptedException.
+- Excellent documentation
+- Comment: no need to check interruptions in select and handleEvents. Semaphor and BlockingQueu classes could be omitted. They are in the same package as Dispatcher, so Dispatcher has access to them. Dispatcher shouldn't keep track of all handlers ever registered. It can cause a massive memory utilization, e.g. when program is running for a long time. However, no point deducted for it (instructions could be misinterpreted). Nothing is added to deregisterEventHandlers.
+- But anyway, very good job!
+
+Reactor 3: Hangman Game (65/100)
+- implemented the event driven game logic in the correct way
+- Requires a non-standard reactor by using 'dispatcher.registeredEventHandlers'. The specification states "You may only use the methods defined in the the Reactor specification. Your Hangman code must not depend on your Reactor code, and your Hangman code must work with any Reactor which implements the specification." Access to the internal state of the Dispatcher by reading 'registeredEventHandlers' is not a part of the spec, this is a major violation of the instructions and a -30p error.
+- AcceptHandler does not check for null events, in case something went wrong with the server socket
+- Using a randomized port can result in a port number that is not available for the game server. The template code already has logic to select a port that is guaranteed to be free.
+- Game logic does not check input. If a player makes a guess with a zero length string, the game can crash. The player can also give input that is not an alphabetic character, but a control character like tab of newline, which will scramble the game printouts
+- A good amount of documentation
+- Overall a nice game implementation, but is tied to a particular Dispatcher implementation. All input should be checked, since if a single player is able to crash the main thread with bad input (intended or not), the JVM and TCP connections will stay alive but unresponsive to all other players
